@@ -4,7 +4,7 @@
 
 This paper investigates how the 2018 tariffs on steel, aluminum, and Chinese imports impacted the steel industry in the United States. Specifically, it seeks to answer the question: did the 2018 tariffs on steel impact employment and trade metrics in the United States steel industry?
 
-Link to paper PDF:
+[Link to paper PDF](https://drive.google.com/file/d/1aotxiQV0tOdJVZ__d2sFc_dJmyYC8EKq/view?usp=sharing)
 
 ## 📊 Data
 
