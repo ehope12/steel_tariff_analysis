@@ -1,0 +1,383 @@
+---
+title: "474finalprojectanalysis"
+output: html_document
+date: "2025-05-04"
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lmtest)
+library(sandwich)
+library(readxl)
+```
+
+```{r}
+wood_data <- read_excel("woodmanufacturing-321.xlsx", skip=11) 
+food_data <- read_excel("foodmanufacturing-311.xlsx", skip=11)
+metal_data <- read_excel("metalmanufacturing-331.xlsx", skip=11)
+electronics_data <- read_excel("electronicmanufacturing-334.xlsx", skip=11)
+textile_data <- read_excel("textilemanufacturing-313.xlsx", skip=11)
+paper_data <- read_excel("papermanufacturing-322.xlsx", skip=11)
+printing_data <- read_excel("printing-323.xlsx", skip=11)
+nonmetal_data <- read_excel("nonmetalmanufacturing-327.xlsx", skip=11)
+```
+
+```{r}
+
+wood_long <- wood_data %>%
+  slice(1:10) %>%  # assuming 2015–2024
+  pivot_longer(cols = -Year, names_to = "month", values_to = "employment") %>%
+  mutate(date = as.Date(paste(Year, month, "1", sep = "-"), format = "%Y-%b-%d"),
+         industry = "Wood (321)")
+
+food_long <- food_data %>%
+  slice(1:10) %>%  # assuming 2015–2024
+  pivot_longer(cols = -Year, names_to = "month", values_to = "employment") %>%
+  mutate(date = as.Date(paste(Year, month, "1", sep = "-"), format = "%Y-%b-%d"),
+         industry = "Food (311)")
+
+metal_long <- metal_data %>%
+  slice(1:10) %>%  # assuming 2015–2024
+  pivot_longer(cols = -Year, names_to = "month", values_to = "employment") %>%
+  mutate(date = as.Date(paste(Year, month, "1", sep = "-"), format = "%Y-%b-%d"),
+         industry = "Metal (331)")
+
+electronics_long <- electronics_data %>%
+  slice(1:10) %>%  # assuming 2015–2024
+  pivot_longer(cols = -Year, names_to = "month", values_to = "employment") %>%
+  mutate(date = as.Date(paste(Year, month, "1", sep = "-"), format = "%Y-%b-%d"),
+         industry = "Electronics (334)")
+
+textile_long <- textile_data %>%
+  slice(1:10) %>%
+  pivot_longer(cols = -Year, names_to = "month", values_to = "employment") %>%
+  mutate(date = as.Date(paste(Year, month, "1", sep = "-"), format = "%Y-%b-%d"),
+         industry = "Textile (313)")
+
+paper_long <- paper_data %>%
+  slice(1:10) %>%
+  pivot_longer(cols = -Year, names_to = "month", values_to = "employment") %>%
+  mutate(date = as.Date(paste(Year, month, "1", sep = "-"), format = "%Y-%b-%d"),
+         industry = "Paper (322)")
+
+printing_long <- printing_data %>%
+  slice(1:10) %>%
+  pivot_longer(cols = -Year, names_to = "month", values_to = "employment") %>%
+  mutate(date = as.Date(paste(Year, month, "1", sep = "-"), format = "%Y-%b-%d"),
+         industry = "Printing (323)")
+
+nonmetal_long <- nonmetal_data %>%
+  slice(1:10) %>%
+  pivot_longer(cols = -Year, names_to = "month", values_to = "employment") %>%
+  mutate(date = as.Date(paste(Year, month, "1", sep = "-"), format = "%Y-%b-%d"),
+         industry = "Nonmetal (327)")
+```
+
+``` {r}
+metal_vs_wood <- bind_rows(metal_long, wood_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Metal (331)", 1, 0), 
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+metal_wood_parallel <- lm(employment ~ treated * time_index, data=metal_vs_wood)
+summary(metal_wood_parallel)
+
+ggplot(metal_vs_wood, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  labs(title = "Parallel Trends: Metal (331) vs Wood (321)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+``` {r}
+metal_vs_food <- bind_rows(metal_long, food_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Metal (331)", 1, 0), 
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+metal_food_parallel <- lm(employment ~ treated * time_index, data=metal_vs_wood)
+summary(metal_food_parallel)
+
+ggplot(metal_vs_food, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  labs(title = "Parallel Trends: Metal (331) vs Food (311)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+
+```{r}
+metal_vs_paper <- bind_rows(metal_long, paper_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Metal (331)", 1, 0), 
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+metal_paper_parallel <- lm(employment ~ treated * time_index, data = metal_vs_paper)
+summary(metal_paper_parallel)
+
+ggplot(metal_vs_paper, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  labs(title = "Parallel Trends: Metal (331) vs Paper (322)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+
+```{r}
+metal_vs_textile <- bind_rows(metal_long, textile_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Metal (331)", 1, 0), 
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+metal_textile_parallel <- lm(employment ~ treated * time_index, data = metal_vs_textile)
+summary(metal_textile_parallel)
+
+ggplot(metal_vs_textile, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  labs(title = "Parallel Trends: Metal (331) vs Textile (313)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+``` {r}
+metal_vs_printing <- bind_rows(metal_long, printing_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Metal (331)", 1, 0),
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+metal_printing_parallel <- lm(employment ~ treated * time_index, data = metal_vs_printing)
+summary(metal_printing_parallel)
+
+ggplot(metal_vs_printing, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  labs(title = "Parallel Trends: Metal (331) vs Printing (323)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+```{r}
+metal_vs_nonmetal <- bind_rows(metal_long, nonmetal_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Metal (331)", 1, 0),
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+metal_nonmetal_parallel <- lm(employment ~ treated * time_index, data = metal_vs_nonmetal)
+summary(metal_nonmetal_parallel)
+
+ggplot(metal_vs_nonmetal, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  labs(title = "Parallel Trends: Metal (331) vs Nonmetal (327)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+
+``` {r}
+electronics_vs_wood <- bind_rows(electronics_long, wood_long) %>%
+  filter(date < as.Date("2018-01-01"))  %>%
+ mutate(treated = ifelse(industry == "Electronics (334)", 1, 0), 
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+electronics_wood_parallel <- lm(employment ~ treated * time_index, data=electronics_vs_wood)
+summary(electronics_wood_parallel)
+
+ggplot(electronics_vs_wood, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  labs(title = "Parallel Trends: Electronics (334) vs Wood (321)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+
+``` {r}
+electronics_vs_food <- bind_rows(electronics_long, food_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Electronics (334)", 1, 0), 
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+electronics_food_parallel <- lm(employment ~ treated * time_index, data=electronics_vs_food)
+summary(electronics_food_parallel)
+
+ggplot(electronics_vs_food, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  labs(title = "Parallel Trends: Electronics (334) vs Food (311)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+
+``` {r}
+electronics_vs_paper <- bind_rows(electronics_long, paper_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Electronics (334)", 1, 0), 
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+electronics_paper_parallel <- lm(employment ~ treated * time_index, data = electronics_vs_paper)
+summary(electronics_paper_parallel)
+
+ggplot(electronics_vs_paper, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  labs(title = "Parallel Trends: Electronics (334) vs Paper (322)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+
+``` {r}
+electronics_vs_textile <- bind_rows(electronics_long, textile_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Electronics (334)", 1, 0), 
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+electronics_textile_parallel <- lm(employment ~ treated * time_index, data = electronics_vs_textile)
+summary(electronics_textile_parallel)
+
+ggplot(electronics_vs_textile, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  labs(title = "Parallel Trends: Electronics (334) vs Textile (313)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+
+``` {r}
+electronics_vs_printing <- bind_rows(electronics_long, printing_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Electronics (334)", 1, 0),
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+electronics_printing_parallel <- lm(employment ~ treated * time_index, data = electronics_vs_printing)
+summary(electronics_printing_parallel)
+
+ggplot(electronics_vs_printing, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  scale_color_manual(values = c("Electronics (334)" = "red", "Printing (323)" = "blue")) +
+  labs(title = "Parallel Trends: Electronics (334) vs Printing (323)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+
+```{r}
+electronics_vs_nonmetal <- bind_rows(electronics_long, nonmetal_long) %>%
+  filter(date < as.Date("2018-01-01")) %>%
+  mutate(treated = ifelse(industry == "Electronics (334)", 1, 0),
+         time_index = as.numeric(difftime(date, min(date), units = "days")))
+
+electronics_nonmetal_parallel <- lm(employment ~ treated * time_index, data = electronics_vs_nonmetal)
+summary(electronics_nonmetal_parallel)
+
+ggplot(electronics_vs_nonmetal, aes(x = date, y = employment, color = industry)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  scale_color_manual(values = c("Electronics (334)" = "red", "Nonmetal (327)" = "blue")) +
+  labs(title = "Parallel Trends: Electronics (334) vs Nonmetal (327)", x = "Date", y = "Employment") +
+  theme_minimal()
+```
+
+``` {r}
+did_elec_wood <- bind_rows(electronics_long, wood_long) %>%
+  mutate(treated = ifelse(industry == "Electronics (334)", 1, 0),
+         post = ifelse(date >= as.Date("2018-01-01"), 1, 0),
+         did = treated * post)
+
+did_metal_food <- bind_rows(metal_long, food_long) %>%
+  mutate(treated = ifelse(industry == "Metal (331)", 1, 0),
+         post = ifelse(date >= as.Date("2018-01-01"), 1, 0),
+         did = treated * post)
+
+
+did_elec_wood_period <- did_elec_wood %>%
+  filter(date >= as.Date("2015-01-01") & date < as.Date("2021-01-01"))
+
+did_metal_food_period <- did_metal_food %>%
+  filter(date >= as.Date("2015-01-01") & date < as.Date("2021-01-01"))
+
+model_elec_wood <- lm(employment ~ treated + post + did, data = did_elec_wood_period)
+coeftest(model_elec_wood, vcov = vcovHC(model_elec_wood, type = "HC1"))
+
+model_metal_food <- lm(employment ~ treated + post + did, data = did_metal_food_period)
+coeftest(model_metal_food, vcov = vcovHC(model_metal_food, type = "HC1"))
+
+```
+
+``` {r}
+
+did_elec_wood_period2 <- did_elec_wood %>%
+  filter(date >= as.Date("2017-01-01") & date < as.Date("2019-01-01"))
+
+did_metal_food_period2 <- did_metal_food %>%
+  filter(date >= as.Date("2017-01-01") & date < as.Date("2019-01-01"))
+
+model_elec_wood <- lm(employment ~ treated + post + did, data = did_elec_wood_period2)
+coeftest(model_elec_wood, vcov = vcovHC(model_elec_wood, type = "HC1"))
+
+model_metal_food <- lm(employment ~ treated + post + did, data = did_metal_food_period2)
+coeftest(model_metal_food, vcov = vcovHC(model_metal_food, type = "HC1"))
+
+```
+
+``` {r}
+did_elec_paper <- bind_rows(electronics_long, paper_long) %>%
+  mutate(treated = ifelse(industry == "Electronics (334)", 1, 0),
+         post = ifelse(date >= as.Date("2018-01-01"), 1, 0),
+         did = treated * post)
+
+did_metal_paper <- bind_rows(metal_long, paper_long) %>%
+  mutate(treated = ifelse(industry == "Metal (331)", 1, 0),
+         post = ifelse(date >= as.Date("2018-01-01"), 1, 0),
+         did = treated * post)
+
+did_elec_printing <- bind_rows(electronics_long, printing_long) %>%
+  mutate(treated = ifelse(industry == "Electronics (334)", 1, 0),
+         post = ifelse(date >= as.Date("2018-01-01"), 1, 0),
+         did = treated * post)
+
+did_metal_printing <- bind_rows(metal_long, printing_long) %>%
+  mutate(treated = ifelse(industry == "Metal (331)", 1, 0),
+         post = ifelse(date >= as.Date("2018-01-01"), 1, 0),
+         did = treated * post)
+```
+
+``` {r}
+did_elec_paper_period3 <- did_elec_paper %>%
+  filter(date >= as.Date("2015-01-01") & date < as.Date("2021-01-01"))
+model_elec_paper3 <- lm(employment ~ treated + post + did, data = did_elec_paper_period3)
+coeftest(model_elec_paper3, vcov = vcovHC(model_elec_paper3, type = "HC1"))
+
+did_metal_paper_period3 <- did_metal_paper %>%
+  filter(date >= as.Date("2015-01-01") & date < as.Date("2021-01-01"))
+model_metal_paper3 <- lm(employment ~ treated + post + did, data = did_metal_paper_period3)
+coeftest(model_metal_paper3, vcov = vcovHC(model_metal_paper3, type = "HC1"))
+
+did_elec_printing_period3 <- did_elec_printing %>%
+  filter(date >= as.Date("2015-01-01") & date < as.Date("2021-01-01"))
+model_elec_printing3 <- lm(employment ~ treated + post + did, data = did_elec_printing_period3)
+coeftest(model_elec_printing3, vcov = vcovHC(model_elec_printing3, type = "HC1"))
+
+did_metal_printing_period3 <- did_metal_printing %>%
+  filter(date >= as.Date("2015-01-01") & date < as.Date("2021-01-01"))
+model_metal_printing3 <- lm(employment ~ treated + post + did, data = did_metal_printing_period3)
+coeftest(model_metal_printing3, vcov = vcovHC(model_metal_printing3, type = "HC1"))
+```
+
+``` {r}
+did_elec_paper_period2 <- did_elec_paper %>%
+  filter(date >= as.Date("2017-01-01") & date < as.Date("2020-01-01"))
+model_elec_paper2 <- lm(employment ~ treated + post + did, data = did_elec_paper_period2)
+coeftest(model_elec_paper2, vcov = vcovHC(model_elec_paper2, type = "HC1"))
+
+did_metal_paper_period2 <- did_metal_paper %>%
+  filter(date >= as.Date("2017-01-01") & date < as.Date("2020-01-01"))
+model_metal_paper2 <- lm(employment ~ treated + post + did, data = did_metal_paper_period2)
+coeftest(model_metal_paper2, vcov = vcovHC(model_metal_paper2, type = "HC1"))
+
+did_elec_printing_period2 <- did_elec_printing %>%
+  filter(date >= as.Date("2017-01-01") & date < as.Date("2020-01-01"))
+model_elec_printing2 <- lm(employment ~ treated + post + did, data = did_elec_printing_period2)
+coeftest(model_elec_printing2, vcov = vcovHC(model_elec_printing2, type = "HC1"))
+
+did_metal_printing_period2 <- did_metal_printing %>%
+  filter(date >= as.Date("2017-01-01") & date < as.Date("2020-01-01"))
+model_metal_printing2 <- lm(employment ~ treated + post + did, data = did_metal_printing_period2)
+coeftest(model_metal_printing2, vcov = vcovHC(model_metal_printing2, type = "HC1"))
+```
+
+``` {r}
+did_elec_paper_period1 <- did_elec_paper %>%
+  filter(date >= as.Date("2017-01-01") & date < as.Date("2019-01-01"))
+model_elec_paper1 <- lm(employment ~ treated + post + did, data = did_elec_paper_period1)
+coeftest(model_elec_paper1, vcov = vcovHC(model_elec_paper1, type = "HC1"))
+
+did_metal_paper_period1 <- did_metal_paper %>%
+  filter(date >= as.Date("2017-01-01") & date < as.Date("2019-01-01"))
+model_metal_paper1 <- lm(employment ~ treated + post + did, data = did_metal_paper_period1)
+coeftest(model_metal_paper1, vcov = vcovHC(model_metal_paper1, type = "HC1"))
+
+did_elec_printing_period1 <- did_elec_printing %>%
+  filter(date >= as.Date("2017-01-01") & date < as.Date("2019-01-01"))
+model_elec_printing1 <- lm(employment ~ treated + post + did, data = did_elec_printing_period1)
+coeftest(model_elec_printing1, vcov = vcovHC(model_elec_printing1, type = "HC1"))
+
+did_metal_printing_period1 <- did_metal_printing %>%
+  filter(date >= as.Date("2017-01-01") & date < as.Date("2019-01-01"))
+model_metal_printing1 <- lm(employment ~ treated + post + did, data = did_metal_printing_period1)
+coeftest(model_metal_printing1, vcov = vcovHC(model_metal_printing1, type = "HC1"))
+```
